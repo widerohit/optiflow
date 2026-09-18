@@ -1,1 +1,721 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OptiFlow — Figma-style prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy: #1a1a1a;
+      --bg: #fff;
+      --line: #d0d5dd;
+      --text: #1a1a1a;
+      --muted: #5f6b7a;
+      --head: #f3f4f6;
+      --amber: #9a6700;
+      --red: #b42318;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: "DM Sans", system-ui, sans-serif;
+      color: var(--text);
+      background: #2b2b2b;
+      overflow: hidden;
+    }
+    button, input, select, textarea { font-family: inherit; }
+    .chrome {
+      height: 40px; background: #1f1f1f; display: flex; align-items: center;
+      justify-content: space-between; padding: 0 12px; color: #fff; border-bottom: 1px solid #000;
+    }
+    .chrome-left, .chrome-right, .chrome-center { display: flex; align-items: center; gap: 8px; }
+    .figma-dots { display: flex; gap: 5px; }
+    .figma-dots span { width: 8px; height: 8px; background: #666; }
+    .figma-dots span:nth-child(1) { background: #ff5f57; }
+    .figma-dots span:nth-child(2) { background: #febc2e; }
+    .figma-dots span:nth-child(3) { background: #28c840; }
+    .file-name { font-size: 12px; font-weight: 600; color: #e5e7eb; }
+    .file-name small { color: #9ca3af; font-weight: 400; margin-left: 8px; }
+    .mode-toggle { background: #111; border: 1px solid #444; display: flex; }
+    .mode-toggle button {
+      border: 0; background: transparent; color: #d1d5db; font-size: 11px; font-weight: 600;
+      padding: 5px 10px; cursor: pointer;
+    }
+    .mode-toggle button.on { background: #fff; color: #111; }
+    .present-btn {
+      background: var(--navy); color: #fff; border: 1px solid #000;
+      padding: 5px 10px; font-size: 11px; font-weight: 700; cursor: pointer;
+    }
+    .zoom { color: #9ca3af; font-size: 11px; }
+    .canvas-wrap { height: calc(100% - 40px); overflow: auto; background:
+      linear-gradient(#3a3a3a 1px, transparent 1px) 0 0 / 24px 24px,
+      linear-gradient(90deg, #3a3a3a 1px, transparent 1px) 0 0 / 24px 24px #2b2b2b; }
+    .canvas { min-width: 5800px; padding: 48px 56px 72px; display: flex; gap: 40px; align-items: flex-start; }
+    .artboard { cursor: pointer; }
+    .artboard-label { display: flex; align-items: center; gap: 8px; color: #d1d5db; font-size: 11px; font-weight: 600; margin-bottom: 8px; }
+    .artboard-label em { font-style: normal; color: #8b8b8b; font-weight: 400; }
+    .device {
+      width: 1280px; height: 800px; background: #f6f7fb; overflow: hidden;
+      display: grid; grid-template-columns: 220px 1fr; border: 1px solid #111; border-radius: 12px;
+    }
+    .canvas .device { pointer-events: none; transform: scale(.72); transform-origin: top left; }
+    .artboard .scaler { width: calc(1280px * .72); height: calc(800px * .72); }
+    body.prototype-mode .canvas-wrap { overflow: hidden; }
+    body.prototype-mode .canvas { min-width: 0; padding: 0; height: 100%; }
+    body.prototype-mode .artboard { display: none; }
+    body.prototype-mode .artboard.active { display: block; width: 100%; height: 100%; }
+    body.prototype-mode .artboard-label { display: none; }
+    body.prototype-mode .scaler, body.prototype-mode .device {
+      width: 100%; height: 100%; transform: none; border: 0;
+    }
+    .sidebar { background: #0f172a; color: #fff; display: flex; flex-direction: column; }
+    .brand { display: grid; grid-template-columns: 32px 1fr; gap: 10px; align-items: center; padding: 18px 16px 16px; }
+    .logo { width: 32px; height: 32px; border-radius: 10px; background: #38bdf8; color: #082f49; display: grid; place-items: center; font-weight: 800; font-size: 13px; }
+    .brand h1 { font-size: 15px; font-weight: 700; }
+    .brand p { font-size: 11px; color: #94a3b8; }
+    .nav-item { display: grid; grid-template-columns: 16px 1fr; gap: 10px; align-items: center; margin: 2px 10px; padding: 9px 10px; border-radius: 10px; font-size: 13px; font-weight: 500; color: #cbd5e1; cursor: pointer; }
+    .nav-item:hover { background: rgba(255,255,255,.06); }
+    .nav-item.active { background: #38bdf8; color: #082f49; }
+    .nav-item svg { width: 16px; height: 16px; }
+    .sidebar-foot { margin-top: auto; padding: 14px 16px; font-size: 11px; color: #94a3b8; line-height: 1.45; }
+    .main { display: grid; grid-template-rows: 56px 1fr; min-width: 0; }
+    .topbar { background: #fff; border-bottom: 1px solid #e8ecf2; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; gap: 12px; }
+    .search { max-width: 360px; flex: 1; background: #f6f7fb; border: 1px solid #e8ecf2; border-radius: 10px; padding: 8px 12px; font-size: 13px; color: var(--muted); }
+    .top-right { display: flex; align-items: center; gap: 10px; }
+    .pill { font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 999px; background: #ecfdf5; color: #047857; }
+    .pill.warn { background: #fff7ed; color: #c2410c; }
+    .avatar { width: 28px; height: 28px; border-radius: 50%; background: #0f172a; color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+    .content { padding: 20px 22px 28px; overflow: auto; display: grid; align-content: start; gap: 16px; height: calc(800px - 56px); }
+    body.prototype-mode .content { height: calc(100vh - 40px - 56px); }
+    .page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .page-head h2 { font-size: 22px; font-weight: 700; letter-spacing: -.03em; }
+    .page-head p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .btn { border: 1px solid #e8ecf2; background: #fff; border-radius: 10px; padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-primary { background: #0f172a; color: #fff; border-color: #0f172a; }
+    .btn-ghost { background: #fff; }
+    .row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .kpis, .meta, .split, .grid-2, .form-grid { display: grid; gap: 12px; }
+    .kpis { grid-template-columns: repeat(4, 1fr); }
+    .split { grid-template-columns: 1.15fr .85fr; }
+    .grid-2 { grid-template-columns: 1fr 1fr; }
+    .form-grid { grid-template-columns: 1fr 1fr; }
+    .form-grid .full { grid-column: 1 / -1; }
+    .kpi, .meta div, .card, .box, .share, .api-card, .find-card {
+      background: #fff; border: 1px solid #e8ecf2; border-radius: 14px;
+    }
+    .kpi { padding: 14px; }
+    .kpi .label { font-size: 11px; color: var(--muted); font-weight: 650; }
+    .kpi .num { font-size: 28px; font-weight: 700; margin-top: 4px; letter-spacing: -.04em; }
+    .kpi .hint, .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .card { overflow: hidden; }
+    .card h3 { font-size: 13px; font-weight: 700; padding: 12px 14px; border-bottom: 1px solid #eef2f6; }
+    .status { display: inline-flex; padding: 2px 8px; font-size: 11px; font-weight: 650; border-radius: 999px; white-space: nowrap; }
+    .mono { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: #0369a1; }
+    .h-slow { background: #fee2e2; color: #b91c1c; }
+    .h-watch { background: #fff7ed; color: #c2410c; }
+    .h-ok { background: #dcfce7; color: #15803d; }
+    .f-wide { background: #fef3c7; color: #92400e; }
+    .f-null { background: #ede9fe; color: #6d28d9; }
+    .f-idx { background: #dbeafe; color: #1d4ed8; }
+    .meta { grid-template-columns: repeat(4, 1fr); }
+    .meta div { padding: 12px; }
+    .meta small { color: var(--muted); font-size: 11px; }
+    .meta b { display: block; margin-top: 4px; font-size: 13px; }
+    .field label { display: block; font-size: 11px; font-weight: 650; color: var(--muted); margin-bottom: 6px; }
+    .box { padding: 12px; font-size: 13px; line-height: 1.5; }
+    .toast { position: fixed; bottom: 18px; right: 18px; background: #0f172a; color: #fff; padding: 10px 12px; border-radius: 10px; font-size: 13px; display: none; z-index: 50; }
+    .crumbs { font-size: 12px; color: var(--muted); }
+    .crumbs b { color: var(--text); }
+    .title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .empty { padding: 18px 4px; font-size: 13px; color: var(--muted); }
+    .quiet { color: #94a3b8; font-size: 13px; padding: 8px 0 0; }
+    .banner {
+      background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a;
+      border-radius: 12px; padding: 10px 12px; font-size: 12px; font-weight: 600;
+    }
+    .health-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .health-tab {
+      border: 1px solid #e8ecf2; background: #fff; border-radius: 999px; padding: 8px 14px;
+      font-size: 13px; font-weight: 600; cursor: pointer; color: #475569;
+    }
+    .health-tab.on { background: #0f172a; color: #fff; border-color: #0f172a; }
+    .api-card, .find-card {
+      padding: 14px; cursor: pointer; display: grid; gap: 8px; align-content: start;
+    }
+    .api-card:hover, .find-card:hover { border-color: #0f172a; }
+    .api-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .api-card h4, .find-card h4 { font-size: 14px; font-weight: 650; }
+    .api-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: #64748b; }
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .cards.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .bar { height: 8px; background: #eef2f6; border-radius: 99px; overflow: hidden; }
+    .bar span { display: block; height: 100%; border-radius: 99px; }
+    .bar.slow span { background: #ef4444; }
+    .bar.watch span { background: #f59e0b; }
+    .bar.ok span { background: #22c55e; }
+    table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.data th, table.data td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #f1f5f9; }
+    table.data th { font-size: 11px; color: #64748b; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; background: #f8fafc; }
+    table.data tr.click { cursor: pointer; }
+    table.data tr.click:hover td { background: #f8fafc; }
+    table.data tr.on td { background: #eff6ff; }
+    .sql {
+      font-family: "IBM Plex Mono", monospace; font-size: 12px; line-height: 1.55;
+      background: #0f172a; color: #e2e8f0; border-radius: 12px; padding: 14px; white-space: pre-wrap;
+    }
+    .sql.light { background: #f8fafc; color: #0f172a; border: 1px solid #e8ecf2; }
+    .sql b { color: #38bdf8; font-weight: 600; }
+    .sql.light b { color: #0369a1; }
+    .diff-ok { color: #86efac; }
+    .list { padding: 4px 0 10px; }
+    .list-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #f1f5f9; font-size: 13px; cursor: pointer; }
+    .list-row:hover { background: #f8fafc; }
+    .list-row span { color: #64748b; font-size: 12px; }
+    .step { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
+    .step p { font-weight: 650; }
+    .step span { font-size: 12px; color: var(--muted); }
+    .share { padding: 16px; font-size: 13px; line-height: 1.55; background: #0f172a; color: #fff; }
+    .share h4 { font-size: 13px; margin-bottom: 8px; }
+    .modal-back { display: none; position: absolute; inset: 0; background: rgba(15,23,42,.4); align-items: center; justify-content: center; z-index: 20; }
+    .modal-back.on { display: flex; }
+    .modal { width: 640px; max-height: 86%; overflow: auto; background: #fff; border-radius: 16px; padding: 18px; }
+    .modal h3 { font-size: 18px; margin-bottom: 4px; }
+    input, select, textarea { width: 100%; border: 1px solid #e8ecf2; border-radius: 10px; padding: 8px 10px; font-size: 13px; background: #fff; }
+    textarea { min-height: 88px; resize: vertical; font-family: "IBM Plex Mono", monospace; font-size: 12px; }
+    .cmp { display: grid; grid-template-columns: 90px 1fr 90px; align-items: center; gap: 8px; font-size: 12px; }
+    .cmp .rail { height: 10px; background: #eef2f6; border-radius: 99px; overflow: hidden; }
+    .cmp .rail i { display: block; height: 100%; background: #38bdf8; border-radius: 99px; }
+    .cmp .rail.bad i { background: #f59e0b; }
+  </style>
+</head>
+<body>
+  <header class="chrome">
+    <div class="chrome-left">
+      <div class="figma-dots"><span></span><span></span><span></span></div>
+      <div class="file-name">OptiFlow <small>Performance insights for APIs, tables, and SQL</small></div>
+    </div>
+    <div class="chrome-center">
+      <div class="mode-toggle">
+        <button id="btnCanvas" class="on" type="button">Canvas</button>
+        <button id="btnProto" type="button">Prototype</button>
+      </div>
+    </div>
+    <div class="chrome-right">
+      <span class="zoom" id="zoomLabel">72%</span>
+      <button class="present-btn" id="btnPresent" type="button">Present</button>
+    </div>
+  </header>
+
+  <div class="canvas-wrap">
+    <div class="canvas">
+      <div class="artboard active" data-frame="dashboard">
+        <div class="artboard-label">01 Dashboard <em>Scheduled job · APIs that drag the platform</em></div>
+        <div class="scaler"><div class="device" data-app></div></div>
+      </div>
+      <div class="artboard" data-frame="apis">
+        <div class="artboard-label">02 APIs <em>Healthy / Watch / Slow</em></div>
+        <div class="scaler"><div class="device" data-app></div></div>
+      </div>
+      <div class="artboard" data-frame="detail">
+        <div class="artboard-label">03 API detail <em>List facilities · inform developer</em></div>
+        <div class="scaler"><div class="device" data-app></div></div>
+      </div>
+      <div class="artboard" data-frame="tables">
+        <div class="artboard-label">04 Tables <em>Schema fit · unused columns · indexes</em></div>
+        <div class="scaler"><div class="device" data-app></div></div>
+      </div>
+      <div class="artboard" data-frame="sql">
+        <div class="artboard-label">05 SQL <em>Paste query · AI rewrite · copy</em></div>
+        <div class="scaler"><div class="device" data-app></div></div>
+      </div>
+      <div class="artboard" data-frame="notify">
+        <div class="artboard-label">06 Inform developer <em>Optional Jira / GitLab</em></div>
+        <div class="scaler"><div class="device" data-app></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const ME = "Rohit Patil";
+    const APIS = [
+      { id: "list-facilities", name: "List facilities", health: "slow", queries: 142, ms: 890, calls: 18400, owner: "Rohit Patil", table: "FACILITY", finding: "N+1 reads on child rows", sql: "SELECT * FROM FACILITY f JOIN FACILITY_CHILD c ON c.FACILITY_ID = f.ID", score: 96 },
+      { id: "load-payments", name: "Load payment history", health: "slow", queries: 87, ms: 720, calls: 9100, owner: "Sunil Burud", table: "PAYMENT", finding: "Full table scan on FACILITY_ID", sql: "SELECT * FROM PAYMENT WHERE FACILITY_ID = @id", score: 88 },
+      { id: "gen-statement", name: "Generate statement", health: "watch", queries: 24, ms: 410, calls: 4200, owner: "Ankita Gade", table: "STATEMENT", finding: "Wide VARCHAR vs stored length", sql: "SELECT * FROM STATEMENT WHERE PERIOD = @p", score: 54 },
+      { id: "search-cp", name: "Search counterparties", health: "watch", queries: 18, ms: 380, calls: 6100, owner: "Kundan Bhadoriya", table: "COUNTERPARTY", finding: "LIKE on unindexed name", sql: "SELECT * FROM COUNTERPARTY WHERE NAME LIKE @q + '%'", score: 48 },
+      { id: "recalc-interest", name: "Recalc interest", health: "ok", queries: 6, ms: 95, calls: 2100, owner: "Uddeshya Kumar", table: "INTEREST", finding: "Within range", sql: "SELECT RATE FROM INTEREST WHERE ID = @id", score: 12 },
+      { id: "export-pos", name: "Export positions", health: "ok", queries: 4, ms: 62, calls: 800, owner: "Ritika Saini", table: "POSITION", finding: "Within range", sql: "SELECT ID, AMOUNT FROM POSITION WHERE AS_OF = @d", score: 8 }
+    ];
+    const TABLES = [
+      { id: "FACILITY", rows: "1.2M", cols: 28, unused: 1, wide: 1, idx: "1 missing" },
+      { id: "PAYMENT", rows: "4.8M", cols: 22, unused: 0, wide: 1, idx: "1 missing" },
+      { id: "STATEMENT", rows: "640k", cols: 19, unused: 2, wide: 1, idx: "ok" },
+      { id: "COUNTERPARTY", rows: "88k", cols: 16, unused: 1, wide: 0, idx: "1 unused" }
+    ];
+    const COLS = {
+      FACILITY: [
+        { name: "ID", type: "BIGINT", defined: "—", stored: "—", note: "PK", kind: "ok" },
+        { name: "NAME", type: "VARCHAR(1000)", defined: "1000", stored: "avg 42 · max 65", note: "Defined much wider than stored data", kind: "wide" },
+        { name: "STATUS", type: "VARCHAR(20)", defined: "20", stored: "avg 7 · max 12", note: "Fit", kind: "ok" },
+        { name: "LEGACY_FLAG", type: "VARCHAR(50)", defined: "50", stored: "always NULL", note: "Unused column", kind: "null" }
+      ],
+      PAYMENT: [
+        { name: "ID", type: "BIGINT", defined: "—", stored: "—", note: "PK", kind: "ok" },
+        { name: "FACILITY_ID", type: "BIGINT", defined: "—", stored: "—", note: "No supporting index", kind: "idx" },
+        { name: "NOTES", type: "VARCHAR(4000)", defined: "4000", stored: "avg 18 · max 80", note: "Defined much wider than stored data", kind: "wide" },
+        { name: "AMOUNT", type: "DECIMAL(18,2)", defined: "—", stored: "—", note: "Fit", kind: "ok" }
+      ],
+      STATEMENT: [
+        { name: "ID", type: "BIGINT", defined: "—", stored: "—", note: "PK", kind: "ok" },
+        { name: "TITLE", type: "VARCHAR(500)", defined: "500", stored: "avg 28 · max 61", note: "Defined much wider than stored data", kind: "wide" },
+        { name: "OLD_CODE", type: "VARCHAR(100)", defined: "100", stored: "always NULL", note: "Unused column", kind: "null" },
+        { name: "ARCHIVE_NOTE", type: "NVARCHAR(MAX)", defined: "MAX", stored: "always NULL", note: "Unused column", kind: "null" }
+      ],
+      COUNTERPARTY: [
+        { name: "ID", type: "BIGINT", defined: "—", stored: "—", note: "PK", kind: "ok" },
+        { name: "NAME", type: "VARCHAR(200)", defined: "200", stored: "avg 16 · max 44", note: "Fit", kind: "ok" },
+        { name: "TMP_IMPORT", type: "VARCHAR(255)", defined: "255", stored: "always NULL", note: "Unused column", kind: "null" },
+        { name: "IX_NAME_OLD", type: "INDEX", defined: "—", stored: "0 seeks", note: "Unused index", kind: "idx" }
+      ]
+    };
+    const REWRITES = {
+      "list-facilities": {
+        before: "SELECT * FROM FACILITY f\nJOIN FACILITY_CHILD c ON c.FACILITY_ID = f.ID",
+        after: "SELECT f.ID, f.NAME, f.STATUS, c.ID, c.AMOUNT\nFROM FACILITY f\nJOIN FACILITY_CHILD c ON c.FACILITY_ID = f.ID",
+        index: "CREATE INDEX IX_FACILITY_CHILD_FACILITY_ID ON FACILITY_CHILD (FACILITY_ID)",
+        gain: "Est. 40–70% fewer round-trips if the N+1 loop is collapsed in the same MR"
+      },
+      "load-payments": {
+        before: "SELECT * FROM PAYMENT WHERE FACILITY_ID = @id",
+        after: "SELECT ID, FACILITY_ID, AMOUNT, VALUE_DATE\nFROM PAYMENT\nWHERE FACILITY_ID = @id",
+        index: "CREATE INDEX IX_PAYMENT_FACILITY_ID ON PAYMENT (FACILITY_ID) INCLUDE (AMOUNT, VALUE_DATE)",
+        gain: "Est. 50–80% less scan time on FACILITY_ID"
+      },
+      "gen-statement": {
+        before: "SELECT * FROM STATEMENT WHERE PERIOD = @p",
+        after: "SELECT ID, PERIOD, TITLE, AMOUNT\nFROM STATEMENT\nWHERE PERIOD = @p",
+        index: "Keep existing PERIOD index. Shrink TITLE from VARCHAR(500) toward stored max (~61).",
+        gain: "Less I/O from unused columns; TITLE length is a table finding, not SQL"
+      }
+    };
+
+    let selectedApi = "list-facilities";
+    let selectedHealth = "slow";
+    let selectedTable = "FACILITY";
+    let sqlSource = "api";
+    let rewritten = true;
+    let issueOpen = true;
+
+    const HEALTH = { slow: "Slow", watch: "Watch", ok: "Healthy" };
+    const HCLASS = { slow: "h-slow", watch: "h-watch", ok: "h-ok" };
+    const KIND = { wide: "f-wide", null: "f-null", idx: "f-idx", ok: "h-ok" };
+    const KIND_L = { wide: "Wide vs stored", null: "Unused / NULL", idx: "Index", ok: "Fit" };
+
+    const icon = {
+      dash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>',
+      api: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h6M4 16h6M14 6l6 6-6 6"/></svg>',
+      tab: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 10h16"/></svg>',
+      sql: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7h14M5 12h10M5 17h7"/></svg>',
+      bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2H4.5L6 16z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>',
+      set: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M4 12h3M17 12h3M12 4v3M12 17v3"/></svg>'
+    };
+
+    function findApi(id) { return APIS.find((a) => a.id === id) || APIS[0]; }
+    function byHealth(h) { return h === "all" ? APIS : APIS.filter((a) => a.health === h); }
+    function hs(a) { return `<span class="status ${HCLASS[a.health]}">${HEALTH[a.health]}</span>`; }
+    function barW(a) { return Math.max(8, Math.min(100, a.score)); }
+    function apiCard(a) {
+      return `<article class="api-card" data-go="detail" data-api="${a.id}">
+        <div class="api-top"><span class="mono">${a.table}</span>${hs(a)}</div>
+        <h4>${a.name}</h4>
+        <div class="bar ${a.health}"><span style="width:${barW(a)}%"></span></div>
+        <div class="api-meta"><span>${a.queries} queries · ${a.ms} ms</span><span>${a.owner}</span></div>
+      </article>`;
+    }
+
+    function pages() {
+      const a = findApi(selectedApi);
+      const shown = byHealth(selectedHealth);
+      const slow = APIS.filter((x) => x.health === "slow");
+      const watch = APIS.filter((x) => x.health === "watch");
+      const ok = APIS.filter((x) => x.health === "ok");
+      const cols = COLS[selectedTable];
+      const paste = sqlSource === "paste"
+        ? "SELECT * FROM PAYMENT WHERE FACILITY_ID = @id"
+        : a.sql;
+      const afterSql = rewritten ? (REWRITES[selectedApi] || REWRITES["load-payments"]).after : "";
+      const afterIdx = rewritten ? (REWRITES[selectedApi] || REWRITES["load-payments"]).index : "";
+      const afterGain = rewritten ? (REWRITES[selectedApi] || REWRITES["load-payments"]).gain : "";
+      const tWide = cols.filter((c) => c.kind === "wide").length;
+      const tNull = cols.filter((c) => c.kind === "null").length;
+      const tIdx = cols.filter((c) => c.kind === "idx").length;
+
+      return {
+        dashboard: `
+          <div class="page-head">
+            <div>
+              <h2>Performance insights</h2>
+              <p>Scheduled job on existing metrics. Score = call volume × time. Informs the developer.</p>
+            </div>
+          </div>
+          <div class="banner">OptiFlow does not INSERT, UPDATE, DELETE, or ALTER the application database. The developer applies the fix in a GitLab MR.</div>
+          <div class="kpis">
+            <div class="kpi"><div class="label">APIs scored</div><div class="num">${APIS.length}</div><p class="hint">From existing metrics</p></div>
+            <div class="kpi"><div class="label">Slow</div><div class="num" style="color:#b91c1c">${slow.length}</div><p class="hint">Inform the mapped developer</p></div>
+            <div class="kpi"><div class="label">Watch</div><div class="num" style="color:#c2410c">${watch.length}</div><p class="hint">Rising query count or time</p></div>
+            <div class="kpi"><div class="label">Healthy</div><div class="num" style="color:#15803d">${ok.length}</div><p class="hint">Within range</p></div>
+          </div>
+          <section class="card">
+            <h3>APIs dragging the platform</h3>
+            <div class="list">
+              ${slow.map((x) => `<div class="list-row" data-go="detail" data-api="${x.id}"><div><b>${x.name}</b><div class="quiet">${x.finding} · ${x.queries} queries · ${x.ms} ms</div></div><span>${hs(x)}</span></div>`).join("")}
+            </div>
+          </section>
+          <div class="split">
+            <section class="card">
+              <h3>Table findings waiting on a developer</h3>
+              <div class="list">
+                <div class="list-row" data-go="tables" data-table="FACILITY"><div><b>FACILITY.NAME</b><div class="quiet">VARCHAR(1000) · stored max 65</div></div><span class="status f-wide">Wide vs stored</span></div>
+                <div class="list-row" data-go="tables" data-table="FACILITY"><div><b>FACILITY.LEGACY_FLAG</b><div class="quiet">Always NULL</div></div><span class="status f-null">Unused / NULL</span></div>
+                <div class="list-row" data-go="tables" data-table="PAYMENT"><div><b>PAYMENT.FACILITY_ID</b><div class="quiet">No supporting index</div></div><span class="status f-idx">Index</span></div>
+              </div>
+            </section>
+            <section class="card">
+              <h3>How OptiFlow works</h3>
+              <div class="step"><p>1. Job reads existing metrics</p><span>Query count and execution time</span></div>
+              <div class="step"><p>2. Score APIs by volume × time</p><span>Healthy / Watch / Slow</span></div>
+              <div class="step"><p>3. Read table schema and unused columns</p><span>Suggestions only</span></div>
+              <div class="step"><p>4. AI rewrites SQL against the real schema</p><span>Developer copies it — OptiFlow does not run it</span></div>
+              <div class="step"><p>5. Inform the developer</p><span>Optional Jira or GitLab issue · one open issue per finding</span></div>
+            </section>
+          </div>
+        `,
+        apis: `
+          <div class="page-head">
+            <div>
+              <h2>APIs</h2>
+              <p>Existing metrics: query count and execution time. Click a card to see tables and SQL.</p>
+            </div>
+          </div>
+          <div class="health-tabs">
+            ${[["slow","Slow "+slow.length],["watch","Watch "+watch.length],["ok","Healthy "+ok.length],["all","All "+APIS.length]].map(([id,l]) =>
+              `<button class="health-tab ${selectedHealth===id?"on":""}" type="button" data-health="${id}">${l}</button>`).join("")}
+          </div>
+          <div class="cards">
+            ${shown.map(apiCard).join("")}
+          </div>
+        `,
+        detail: `
+          <div class="crumbs">APIs / ${HEALTH[a.health]} / <b>${a.name}</b></div>
+          <div class="page-head">
+            <div>
+              <div class="title-row">
+                <h2>${a.name}</h2>
+                ${hs(a)}
+              </div>
+              <p>${a.finding} · mapped developer ${a.owner}</p>
+            </div>
+            <div class="row-actions">
+              <button class="btn btn-ghost" data-go="sql" data-api="${a.id}" type="button">Rewrite SQL</button>
+              <button class="btn btn-primary" data-go="notify" data-api="${a.id}" type="button">Inform developer</button>
+            </div>
+          </div>
+          <div class="meta">
+            <div><small>Queries</small><b>${a.queries}</b></div>
+            <div><small>Execution time</small><b>${a.ms} ms</b></div>
+            <div><small>Calls in window</small><b>${a.calls.toLocaleString()}</b></div>
+            <div><small>Score (volume × time)</small><b>${a.score}</b></div>
+          </div>
+          <div class="split">
+            <div>
+              <div class="field"><label>QUERY BEHIND THIS API</label><div class="sql light">${a.sql}</div></div>
+              <div class="field" style="margin-top:12px"><label>TABLE</label>
+                <div class="box">${a.table} · findings are suggestions. OptiFlow does not change the table.
+                  <div class="row-actions" style="margin-top:10px">
+                    <button class="btn" data-go="tables" data-table="${a.table}" type="button">Open ${a.table}</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <section class="card">
+              <h3>Inform loop</h3>
+              <div class="step"><p>Job marked this API Slow</p><span>High query count and high time</span></div>
+              <div class="step"><p>Developer ${a.owner}</p><span>Not written into the application database</span></div>
+              <div class="step"><p>${issueOpen ? "Open issue OF-124" : "No duplicate issue"}</p><span>One open issue per API and finding</span></div>
+              <div class="step"><p>Fix goes in a GitLab MR</p><span>OptiFlow does not execute the rewrite</span></div>
+            </section>
+          </div>
+        `,
+        tables: `
+          <div class="page-head">
+            <div>
+              <h2>Tables</h2>
+              <p>Defined length vs stored length, always-NULL columns, missing or unused indexes.</p>
+            </div>
+          </div>
+          <div class="banner">Suggestions only. OptiFlow does not ALTER tables or CREATE INDEX.</div>
+          <div class="split">
+            <section class="card">
+              <h3>Tables</h3>
+              <table class="data">
+                <thead><tr><th>Table</th><th>Rows</th><th>Wide</th><th>Unused</th><th>Indexes</th></tr></thead>
+                <tbody>
+                  ${TABLES.map((t) => `<tr class="click ${selectedTable===t.id?"on":""}" data-table="${t.id}">
+                    <td class="mono">${t.id}</td><td>${t.rows}</td><td>${t.wide}</td><td>${t.unused}</td><td>${t.idx}</td>
+                  </tr>`).join("")}
+                </tbody>
+              </table>
+            </section>
+            <div>
+              <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+                <div class="kpi"><div class="label">Wide vs stored</div><div class="num">${tWide}</div></div>
+                <div class="kpi"><div class="label">Unused / NULL</div><div class="num">${tNull}</div></div>
+                <div class="kpi"><div class="label">Index</div><div class="num">${tIdx}</div></div>
+              </div>
+              <p class="quiet" style="padding-top:4px">${selectedTable} · developer shrinks or drops columns in an MR</p>
+            </div>
+          </div>
+          <section class="card">
+            <h3>${selectedTable} columns</h3>
+            <table class="data">
+              <thead><tr><th>Column</th><th>Type</th><th>Defined</th><th>Stored</th><th>Finding</th></tr></thead>
+              <tbody>
+                ${cols.map((c) => `<tr>
+                  <td class="mono">${c.name}</td>
+                  <td>${c.type}</td>
+                  <td>${c.defined}</td>
+                  <td>${c.stored}</td>
+                  <td><span class="status ${KIND[c.kind]}">${KIND_L[c.kind]}</span> <span class="quiet">${c.note}</span></td>
+                </tr>`).join("")}
+              </tbody>
+            </table>
+          </section>
+          ${selectedTable === "FACILITY" ? `
+          <div class="grid-2">
+            <article class="find-card">
+              <div class="api-top"><h4>NAME length</h4><span class="status f-wide">Wide vs stored</span></div>
+              <div class="cmp"><span>Stored max 65</span><div class="rail"><i style="width:12%"></i></div><span>1000</span></div>
+              <p class="quiet">Hand to the developer: shrink VARCHAR toward stored length. OptiFlow does not run ALTER.</p>
+            </article>
+            <article class="find-card">
+              <div class="api-top"><h4>LEGACY_FLAG</h4><span class="status f-null">Unused / NULL</span></div>
+              <p class="quiet">Always NULL in this table. Flag as unused so the developer can drop it in an MR if the product agrees.</p>
+            </article>
+          </div>` : ""}
+        `,
+        sql: `
+          <div class="page-head">
+            <div>
+              <h2>SQL rewrite</h2>
+              <p>Paste a query, or use the query behind ${a.name}. AI uses the real schema. You copy the SQL.</p>
+            </div>
+            <div class="row-actions">
+              <button class="btn ${sqlSource==="api"?"btn-primary":"btn-ghost"}" id="useApiSql" type="button">From API</button>
+              <button class="btn ${sqlSource==="paste"?"btn-primary":"btn-ghost"}" id="usePaste" type="button">Paste query</button>
+            </div>
+          </div>
+          <div class="split">
+            <div>
+              <div class="field"><label>INPUT</label><textarea id="sqlIn">${paste}</textarea></div>
+              <div class="row-actions" style="margin-top:10px">
+                <button class="btn btn-primary" id="runRewrite" type="button">Rewrite with schema</button>
+                <button class="btn" id="copySql" type="button">Copy SQL</button>
+              </div>
+              <p class="hint">OptiFlow does not execute this query.</p>
+            </div>
+            <div>
+              ${rewritten ? `
+                <div class="field"><label>SUGGESTED SQL</label><div class="sql" id="sqlOut">${afterSql.replace(/SELECT|FROM|JOIN|WHERE/g, (m) => "<b>"+m+"</b>")}</div></div>
+                <div class="field" style="margin-top:12px"><label>SUGGESTED INDEX (FOR THE MR)</label><div class="box">${afterIdx}</div></div>
+                <div class="field" style="margin-top:12px"><label>ESTIMATED RANGE</label><div class="box">${afterGain}</div></div>
+              ` : `<div class="box empty">Click Rewrite with schema. The model uses ${a.table} column types and stored length — not a generic chatbot.</div>`}
+            </div>
+          </div>
+        `,
+        notify: `
+          <div class="page-head">
+            <div>
+              <h2>Inform developer</h2>
+              <p>Optional Jira or GitLab issue. Not written into the application database.</p>
+            </div>
+            <button class="btn btn-primary" id="openIssue" type="button">Create issue</button>
+          </div>
+          <div class="meta">
+            <div><small>API</small><b>${a.name}</b></div>
+            <div><small>Assign to</small><b>${a.owner}</b></div>
+            <div><small>Finding</small><b>${a.finding}</b></div>
+            <div><small>Open issues</small><b>${issueOpen ? "OF-124" : "None — would create one"}</b></div>
+          </div>
+          <div class="split">
+            <section class="card">
+              <h3>Issue OF-124</h3>
+              <div class="step"><p>Slow API: ${a.name}</p><span>${a.queries} queries · ${a.ms} ms · score ${a.score}</span></div>
+              <div class="step"><p>Table: ${a.table}</p><span>See schema fit and unused columns in OptiFlow</span></div>
+              <div class="step"><p>Suggested SQL is in the ticket</p><span>Developer copies it into a GitLab MR</span></div>
+              <div class="step"><p>Dedup rule</p><span>One open issue per API and finding — no duplicates</span></div>
+            </section>
+            <div class="share" id="issueCard">
+              <h4>Assign to ${a.owner}</h4>
+              API: ${a.name}<br/>
+              Health: ${HEALTH[a.health]}<br/>
+              Finding: ${a.finding}<br/><br/>
+              OptiFlow will not INSERT, UPDATE, DELETE, or ALTER the application database.<br/>
+              Apply the rewrite and schema change in a normal GitLab MR.
+            </div>
+          </div>
+          <div class="modal-back" id="issueModal">
+            <div class="modal">
+              <h3>Create issue</h3>
+              <p class="hint">Jira or GitLab — informs the developer. Does not touch application tables.</p>
+              <div class="form-grid">
+                <div><label class="hint">Tool</label><select><option>Jira</option><option>GitLab</option></select></div>
+                <div><label class="hint">Assign to</label><input value="${a.owner}" /></div>
+                <div class="full"><label class="hint">Title</label><input value="Slow API: ${a.name} — ${a.finding}" /></div>
+                <div class="full"><label class="hint">Body</label><textarea>Score ${a.score}. ${a.queries} queries, ${a.ms} ms. Suggested SQL is attached. Do not run OptiFlow rewrites against production.</textarea></div>
+              </div>
+              <div class="row-actions" style="margin-top:14px;justify-content:flex-end">
+                <button class="btn btn-ghost" id="closeIssue" type="button">Cancel</button>
+                <button class="btn btn-primary" id="submitIssue" type="button">Assign to ${a.owner}</button>
+              </div>
+            </div>
+          </div>
+        `
+      };
+    }
+
+    const nav = [
+      ["dashboard", "Dashboard", icon.dash],
+      ["apis", "APIs", icon.api],
+      ["tables", "Tables", icon.tab],
+      ["sql", "SQL", icon.sql],
+      ["notify", "Inform developer", icon.bell],
+    ];
+
+    function shell(page, html) {
+      return `
+        <aside class="sidebar">
+          <div class="brand"><div class="logo">O</div><div><h1>OptiFlow</h1><p>APIs · tables · SQL</p></div></div>
+          ${nav.map(([id, label, ic]) => `<div class="nav-item ${id===page?"active":""}" data-go="${id}">${ic}${label}</div>`).join("")}
+          <div class="nav-item" style="opacity:.55">${icon.set}Settings</div>
+          <div class="sidebar-foot">Informs the developer. Never INSERT, UPDATE, DELETE, or ALTER the application database.</div>
+        </aside>
+        <section class="main">
+          <div class="topbar">
+            <div class="search">Search APIs, tables, SQL</div>
+            <div class="top-right">
+              <span class="pill">Metrics connected</span>
+              <span class="pill warn">No DB writes</span>
+              <div class="avatar">RP</div>
+              <span style="font-size:13px;font-weight:600">${ME}</span>
+            </div>
+          </div>
+          <div class="content">${html}</div>
+        </section>`;
+    }
+
+    function paint() {
+      const p = pages();
+      document.querySelectorAll(".artboard").forEach((board) => {
+        board.querySelector("[data-app]").innerHTML = shell(board.dataset.frame, p[board.dataset.frame]);
+      });
+      bind();
+    }
+
+    function show(page) {
+      document.querySelectorAll(".artboard").forEach((b) => b.classList.toggle("active", b.dataset.frame === page));
+      paint();
+    }
+
+    function toast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.style.display = "block";
+      setTimeout(() => { t.style.display = "none"; }, 1800);
+    }
+
+    function bind() {
+      document.querySelectorAll("[data-go]").forEach((el) => {
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (el.dataset.api) selectedApi = el.dataset.api;
+          if (el.dataset.table) selectedTable = el.dataset.table;
+          document.body.classList.add("prototype-mode");
+          setModeButtons(true);
+          show(el.getAttribute("data-go"));
+        });
+      });
+      document.querySelectorAll("[data-health]").forEach((el) => {
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          selectedHealth = el.getAttribute("data-health");
+          paint();
+        });
+      });
+      document.querySelectorAll("[data-table]").forEach((el) => {
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          selectedTable = el.getAttribute("data-table");
+          paint();
+        });
+      });
+      const useApi = document.getElementById("useApiSql");
+      if (useApi) useApi.addEventListener("click", (e) => { e.stopPropagation(); sqlSource = "api"; rewritten = true; paint(); });
+      const usePaste = document.getElementById("usePaste");
+      if (usePaste) usePaste.addEventListener("click", (e) => { e.stopPropagation(); sqlSource = "paste"; rewritten = false; selectedApi = "load-payments"; paint(); });
+      const run = document.getElementById("runRewrite");
+      if (run) run.addEventListener("click", (e) => { e.stopPropagation(); rewritten = true; paint(); toast("Rewrite ready — copy SQL. OptiFlow did not run it."); });
+      const copy = document.getElementById("copySql");
+      if (copy) copy.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const out = document.getElementById("sqlOut");
+        if (out) navigator.clipboard.writeText(out.innerText).then(() => toast("Copied suggested SQL"));
+      });
+      const openIssue = document.getElementById("openIssue");
+      const issueModal = document.getElementById("issueModal");
+      if (openIssue && issueModal) {
+        openIssue.addEventListener("click", (e) => { e.stopPropagation(); issueModal.classList.add("on"); });
+        document.getElementById("closeIssue").addEventListener("click", () => issueModal.classList.remove("on"));
+        document.getElementById("submitIssue").addEventListener("click", () => {
+          issueModal.classList.remove("on");
+          issueOpen = true;
+          toast("OF-124 assigned to " + findApi(selectedApi).owner + " · no application DB write");
+          paint();
+        });
+      }
+    }
+
+    function setModeButtons(proto) {
+      document.getElementById("btnProto").classList.toggle("on", proto);
+      document.getElementById("btnCanvas").classList.toggle("on", !proto);
+      document.getElementById("zoomLabel").textContent = proto ? "100%" : "72%";
+    }
+
+    document.getElementById("btnCanvas").addEventListener("click", () => {
+      document.body.classList.remove("prototype-mode");
+      setModeButtons(false);
+    });
+    document.getElementById("btnProto").addEventListener("click", () => {
+      document.body.classList.add("prototype-mode");
+      setModeButtons(true);
+    });
+    document.getElementById("btnPresent").addEventListener("click", () => {
+      document.body.classList.add("prototype-mode");
+      setModeButtons(true);
+      show("dashboard");
+    });
+    document.querySelectorAll(".artboard").forEach((b) => {
+      b.addEventListener("click", () => {
+        document.body.classList.add("prototype-mode");
+        setModeButtons(true);
+        show(b.dataset.frame);
+      });
+    });
+
+    paint();
+  </script>
+</body>
+</html>
